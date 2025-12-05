@@ -72,23 +72,23 @@ def get_post(post_id:int, include_content: bool = Query(default=True, descriptio
     raise HTTPException(status_code=404, detail="Post no encontrado")
 
 
-@app.post("/posts")
+@app.post("/posts", response_model=PostPublic, status_code=201)
 def create_post(post:PostCreate):
     # ... --> obligatori enviar body
 
     new_id_post = max(post["id"] for post in BLOG_POST) + 1
     post_data = {"id": new_id_post, "title": post.title, "content": post.content}
     BLOG_POST.append(post_data)
-    return {"message": "Post creado exitosamente", "data": post_data}
+    return post_data
 
-@app.put("/posts/{post_id}")
+@app.put("/posts/{post_id}", response_model=PostPublic)
 def update_post(post_id:int, data:PostUpdate):
     for post in BLOG_POST:
         if post["id"] == post_id:
             playload = data.model_dump(exclude_unset=True) # excluye los campos no enviados
             if "title" in playload: post["title"] = playload["title"]
             if "content" in playload: post["content"] = playload["content"]
-            return {"message": "Post actualizado exitosamente", "data": post}
+            return post
     raise HTTPException(status_code=404, detail="Post no encontrado")
 
 
