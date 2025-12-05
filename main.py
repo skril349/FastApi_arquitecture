@@ -10,9 +10,13 @@ BLOG_POST = [
     ]
 
 
+class Tag(BaseModel):
+    name: str = Field(..., min_length=2, max_length=30, description="Nombre de la etiqueta")
+
 class PostBase(BaseModel):
     title: str
     content: str
+    tags: Optional[List[Tag]] = []
     
     
 class PostCreate(BaseModel):
@@ -29,6 +33,8 @@ class PostCreate(BaseModel):
         max_length=1000,
         min_length=10
         )
+    
+    tags: List[Tag] = []
     
     @field_validator("title")
     @classmethod
@@ -77,7 +83,7 @@ def create_post(post:PostCreate):
     # ... --> obligatori enviar body
 
     new_id_post = max(post["id"] for post in BLOG_POST) + 1
-    post_data = {"id": new_id_post, "title": post.title, "content": post.content}
+    post_data = {"id": new_id_post, "title": post.title, "content": post.content, "tags": [tag.model_dump() for tag in post.tags]}
     BLOG_POST.append(post_data)
     return post_data
 
