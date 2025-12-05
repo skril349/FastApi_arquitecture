@@ -27,5 +27,6 @@ def get_post(post_id:int):
     for post in BLOG_POST:
         if post["id"] == post_id:
             return {"data": post}
+    return {"error": "Post no encontrado"}
 
 
