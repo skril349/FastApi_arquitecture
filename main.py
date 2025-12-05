@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Query, Body, HTTPException
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator,EmailStr
 from typing import Optional, List, Union
 app = FastAPI(title = "Mini Blog")
 
@@ -12,11 +12,17 @@ BLOG_POST = [
 
 class Tag(BaseModel):
     name: str = Field(..., min_length=2, max_length=30, description="Nombre de la etiqueta")
+    
+class Author(BaseModel):
+    name: str = Field(..., min_length=2, max_length=50, description="Nombre del autor")
+    email: Optional[EmailStr] = Field(None, description="Correo electrónico del autor")
 
 class PostBase(BaseModel):
     title: str
     content: str
     tags: Optional[List[Tag]] = []
+    author: Optional[Author] = None
+    
     
     
 class PostCreate(BaseModel):
@@ -35,6 +41,7 @@ class PostCreate(BaseModel):
         )
     
     tags: List[Tag] = []
+    author: Optional[Author] = None
     
     @field_validator("title")
     @classmethod
@@ -83,7 +90,7 @@ def create_post(post:PostCreate):
     # ... --> obligatori enviar body
 
     new_id_post = max(post["id"] for post in BLOG_POST) + 1
-    post_data = {"id": new_id_post, "title": post.title, "content": post.content, "tags": [tag.model_dump() for tag in post.tags]}
+    post_data = {"id": new_id_post, "title": post.title, "content": post.content, "tags": [tag.model_dump() for tag in post.tags], "author": post.author.model_dump() if post.author else None}
     BLOG_POST.append(post_data)
     return post_data
 
