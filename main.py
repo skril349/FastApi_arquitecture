@@ -16,11 +16,11 @@ def home():
 def list_posts(query: str | None = Query(default=None, description="Buscar en los títulos de los posts")):
     
     if query:
-        result = []
-        for post in BLOG_POST:
-            if query.lower() in post["title"].lower():
-                result.append(post)
+        # list comprehension to filter posts by title
+        result = [post for post in BLOG_POST if query.lower() in post["title"].lower()]
         return {"data": result}
     
     return {"data": BLOG_POST}
+
+
 
