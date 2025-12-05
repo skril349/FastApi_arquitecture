@@ -1,0 +1,17 @@
+from fastapi import FastAPI
+
+app = FastAPI(title = "Mini Blog")
+
+BLOG_POST = [
+    {"id": 1, "title": "Primer Post", "content": "Este es el contenido del primer post."},
+    {"id": 2, "title": "Segundo Post", "content": "Este es el contenido del segundo post."},
+    {"id": 3, "title": "Tercer Post", "content": "Este es el contenido del tercer post."}
+    ]
+
+@app.get("/")
+def home():
+    return {"message": "Bienvenidos a Mini Blog"}
+
+@app.get("/posts")
+def list_posts():
+    return {"data": BLOG_POST}
