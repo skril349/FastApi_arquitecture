@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Query, Body, HTTPException
-from pydantic import BaseModel, Optional
+from pydantic import BaseModel, Field
+from typing import Optional
 app = FastAPI(title = "Mini Blog")
 
 BLOG_POST = [
@@ -11,13 +12,21 @@ BLOG_POST = [
 
 class PostBase(BaseModel):
     title: str
-    content: str
+    content: Optional[str] = "Contenido no disponible"
     
-class PostCreate(PostBase):
-    pass
+class PostCreate(BaseModel):
+    title: str = Field(..., description="Título del post",
+                       max_length=100, min_length=1,
+                       examples={
+        "example1": {"summary": "Título válido", "value": "Mi primer post"}
+    })
+    content: Optional[str] = Field(None, description="Contenido del post",
+                                 examples={
+        "example1": {"summary": "Contenido válido", "value": "Este es el contenido de mi primer post."}
+    }, max_length=1000, min_length=10)
 
 class PostUpdate(BaseModel):
-    title: str
+    title: str = Field(..., description="Título del post", max_length=100, min_length=1)
     content: Optional[str] = None
 
 
