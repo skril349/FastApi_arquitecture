@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Query, Body, HTTPException
 from pydantic import BaseModel, Field, field_validator
-from typing import Optional, List
+from typing import Optional, List, Union
 app = FastAPI(title = "Mini Blog")
 
 BLOG_POST = [
@@ -12,7 +12,7 @@ BLOG_POST = [
 
 class PostBase(BaseModel):
     title: str
-    content: Optional[str] = "Contenido no disponible"
+    content: str
     
     
 class PostCreate(BaseModel):
@@ -20,19 +20,12 @@ class PostCreate(BaseModel):
         ...,
         description="Título del post",
         max_length=100, min_length=1,
-        examples={
-        "example1": {"summary": "Título válido",
-                    "value": "Mi primer post"
-                    }
-        })
+        examples=["Mi primer post"]
+        )
     content: Optional[str] = Field(
         default="Contenido no disponible",
         description="Contenido del post",
-        examples={
-        "example1": {"summary": "Contenido válido",
-                     "value": "Este es el contenido de mi primer post."
-                     }
-        }, 
+        examples=["Este es el contenido de mi primer post."], 
         max_length=1000,
         min_length=10
         )
@@ -55,9 +48,6 @@ class PostSummary(BaseModel):
     id: int
     title: str
 
-class PostListResponse(BaseModel):
-    data: list[PostPublic]
-
 
 @app.get("/")
 def home():
@@ -71,21 +61,21 @@ def list_posts(query: str | None = Query(default=None, description="Buscar en lo
         return [post for post in BLOG_POST if query.lower() in post["title"].lower()]
     return BLOG_POST
 
-@app.get("/posts/{post_id}")
+@app.get("/posts/{post_id}", response_model=Union[PostPublic, PostSummary], response_description="Post encontrado")
 def get_post(post_id:int, include_content: bool = Query(default=True, description="Incluir el contenido del post")):
     
     for post in BLOG_POST:
         if post["id"] == post_id:
             if not include_content:
-                return {"data": {"id": post["id"], "title": post["title"]}}
-            return {"data": post}
+                return {"id": post["id"], "title": post["title"]}
+            return post
     raise HTTPException(status_code=404, detail="Post no encontrado")
 
 
 @app.post("/posts")
-# ... --> obligatori enviar body
 def create_post(post:PostCreate):
-       
+    # ... --> obligatori enviar body
+
     new_id_post = max(post["id"] for post in BLOG_POST) + 1
     post_data = {"id": new_id_post, "title": post.title, "content": post.content}
     BLOG_POST.append(post_data)
