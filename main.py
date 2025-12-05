@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Query, Body, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 app = FastAPI(title = "Mini Blog")
 
@@ -15,15 +15,33 @@ class PostBase(BaseModel):
     content: Optional[str] = "Contenido no disponible"
     
 class PostCreate(BaseModel):
-    title: str = Field(..., description="Título del post",
-                       max_length=100, min_length=1,
-                       examples={
-        "example1": {"summary": "Título válido", "value": "Mi primer post"}
-    })
-    content: Optional[str] = Field(None, description="Contenido del post",
-                                 examples={
-        "example1": {"summary": "Contenido válido", "value": "Este es el contenido de mi primer post."}
-    }, max_length=1000, min_length=10)
+    title: str = Field(
+        ...,
+        description="Título del post",
+        max_length=100, min_length=1,
+        examples={
+        "example1": {"summary": "Título válido",
+                    "value": "Mi primer post"
+                    }
+        })
+    content: Optional[str] = Field(
+        default="Contenido no disponible",
+        description="Contenido del post",
+        examples={
+        "example1": {"summary": "Contenido válido",
+                     "value": "Este es el contenido de mi primer post."
+                     }
+        }, 
+        max_length=1000,
+        min_length=10
+        )
+    
+    @field_validator("title")
+    @classmethod
+    def not_allowed_title(cls,value:str)-> str:
+        if "python" in value.lower():
+            raise ValueError("El título no puede contener la palabra 'python'")
+        return value
 
 class PostUpdate(BaseModel):
     title: str = Field(..., description="Título del post", max_length=100, min_length=1)
