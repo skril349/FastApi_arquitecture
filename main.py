@@ -22,5 +22,10 @@ def list_posts(query: str | None = Query(default=None, description="Buscar en lo
     
     return {"data": BLOG_POST}
 
+@app.get("/posts/{post_id}")
+def get_post(post_id:int):
+    for post in BLOG_POST:
+        if post["id"] == post_id:
+            return {"data": post}
 
 
