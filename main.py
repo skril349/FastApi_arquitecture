@@ -55,3 +55,12 @@ def update_post(post_id:int, data:dict = Body(...,description="Datos actualizado
             post["content"] = data.get("content", post["content"])
             return {"message": "Post actualizado exitosamente", "data": post}
     return {"error": "Post no encontrado"}
+
+
+@app.delete("/posts/{post_id}")
+def delete_post(post_id:int):
+    for index, post in enumerate(BLOG_POST):
+        if post["id"] == post_id:
+            BLOG_POST.pop(index)
+            return {"message": "Post eliminado exitosamente"}
+    return {"error": "Post no encontrado"}
