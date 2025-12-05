@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 
 app = FastAPI(title = "Mini Blog")
 
@@ -13,5 +13,14 @@ def home():
     return {"message": "Bienvenidos a Mini Blog"}
 
 @app.get("/posts")
-def list_posts():
+def list_posts(query: str | None = Query(default=None, description="Buscar en los títulos de los posts")):
+    
+    if query:
+        result = []
+        for post in BLOG_POST:
+            if query.lower() in post["title"].lower():
+                result.append(post)
+        return {"data": result}
+    
     return {"data": BLOG_POST}
+
