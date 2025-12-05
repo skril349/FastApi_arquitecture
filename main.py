@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Query, Body
+from fastapi import FastAPI, Query, Body, HTTPException
 
 app = FastAPI(title = "Mini Blog")
 
@@ -30,7 +30,7 @@ def get_post(post_id:int, include_content: bool = Query(default=True, descriptio
             if not include_content:
                 return {"data": {"id": post["id"], "title": post["title"]}}
             return {"data": post}
-    return {"error": "Post no encontrado"}
+    raise HTTPException(status_code=404, detail="Post no encontrado")
 
 
 @app.post("/posts")
@@ -54,7 +54,7 @@ def update_post(post_id:int, data:dict = Body(...,description="Datos actualizado
             post["title"] = data.get("title", post["title"])
             post["content"] = data.get("content", post["content"])
             return {"message": "Post actualizado exitosamente", "data": post}
-    return {"error": "Post no encontrado"}
+    raise HTTPException(status_code=404, detail="Post no encontrado")
 
 
 @app.delete("/posts/{post_id}")
@@ -63,4 +63,4 @@ def delete_post(post_id:int):
         if post["id"] == post_id:
             BLOG_POST.pop(index)
             return {"message": "Post eliminado exitosamente"}
-    return {"error": "Post no encontrado"}
+    raise HTTPException(status_code=404, detail="Post no encontrado")
