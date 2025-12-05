@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Query, Body, HTTPException
 from pydantic import BaseModel, Field, field_validator
-from typing import Optional
+from typing import Optional, List
 app = FastAPI(title = "Mini Blog")
 
 BLOG_POST = [
@@ -13,6 +13,7 @@ BLOG_POST = [
 class PostBase(BaseModel):
     title: str
     content: Optional[str] = "Contenido no disponible"
+    
     
 class PostCreate(BaseModel):
     title: str = Field(
@@ -46,21 +47,29 @@ class PostCreate(BaseModel):
 class PostUpdate(BaseModel):
     title: str = Field(..., description="Título del post", max_length=100, min_length=1)
     content: Optional[str] = None
+    
+class PostPublic(PostBase):
+    id: int
+    
+class PostSummary(BaseModel):
+    id: int
+    title: str
+
+class PostListResponse(BaseModel):
+    data: list[PostPublic]
 
 
 @app.get("/")
 def home():
     return {"message": "Bienvenidos a Mini Blog"}
 
-@app.get("/posts")
+@app.get("/posts", response_model=List[PostPublic])
 def list_posts(query: str | None = Query(default=None, description="Buscar en los títulos de los posts")):
     
     if query:
         # list comprehension to filter posts by title
-        result = [post for post in BLOG_POST if query.lower() in post["title"].lower()]
-        return {"data": result}
-    
-    return {"data": BLOG_POST}
+        return [post for post in BLOG_POST if query.lower() in post["title"].lower()]
+    return BLOG_POST
 
 @app.get("/posts/{post_id}")
 def get_post(post_id:int, include_content: bool = Query(default=True, description="Incluir el contenido del post")):
