@@ -46,3 +46,12 @@ def create_post(post:dict = Body(...,description="Datos del nuevo post")):
     post_data = {"id": new_id_post, "title": post["title"], "content": post["content"]}
     BLOG_POST.append(post_data)
     return {"message": "Post creado exitosamente", "data": post_data}
+
+@app.put("/posts/{post_id}")
+def update_post(post_id:int, data:dict = Body(...,description="Datos actualizados del post")):
+    for post in BLOG_POST:
+        if post["id"] == post_id:
+            post["title"] = data.get("title", post["title"])
+            post["content"] = data.get("content", post["content"])
+            return {"message": "Post actualizado exitosamente", "data": post}
+    return {"error": "Post no encontrado"}
