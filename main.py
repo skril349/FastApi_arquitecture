@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Query, Body, HTTPException
-
+from pydantic import BaseModel
 app = FastAPI(title = "Mini Blog")
 
 BLOG_POST = [
@@ -7,6 +7,19 @@ BLOG_POST = [
     {"id": 2, "title": "Segundo Post", "content": "Este es el contenido del segundo post."},
     {"id": 3, "title": "Tercer Post", "content": "Este es el contenido del tercer post."}
     ]
+
+
+class PostBase(BaseModel):
+    title: str
+    content: str
+    
+class PostCreate(PostBase):
+    pass
+
+class PostUpdate(BaseModel):
+    title: str | None = None
+    content: str | None = None
+
 
 @app.get("/")
 def home():
@@ -35,24 +48,20 @@ def get_post(post_id:int, include_content: bool = Query(default=True, descriptio
 
 @app.post("/posts")
 # ... --> obligatori enviar body
-def create_post(post:dict = Body(...,description="Datos del nuevo post")):
-    if "title" not in post or "content" not in post:
-        return {"error": "Faltan campos obligatorios: title y content"}
-    
-    if not str(post["title"]).strip() or not str(post["content"]).strip():
-        return {"error": "Los campos title y content no pueden estar vacíos"}
-    
+def create_post(post:PostCreate):
+       
     new_id_post = max(post["id"] for post in BLOG_POST) + 1
-    post_data = {"id": new_id_post, "title": post["title"], "content": post["content"]}
+    post_data = {"id": new_id_post, "title": post.title, "content": post.content}
     BLOG_POST.append(post_data)
     return {"message": "Post creado exitosamente", "data": post_data}
 
 @app.put("/posts/{post_id}")
-def update_post(post_id:int, data:dict = Body(...,description="Datos actualizados del post")):
+def update_post(post_id:int, data:PostUpdate):
     for post in BLOG_POST:
         if post["id"] == post_id:
-            post["title"] = data.get("title", post["title"])
-            post["content"] = data.get("content", post["content"])
+            playload = data.model_dump(exclude_unset=True) # excluye los campos no enviados
+            if "title" in playload: post["title"] = playload["title"]
+            if "content" in playload: post["content"] = playload["content"]
             return {"message": "Post actualizado exitosamente", "data": post}
     raise HTTPException(status_code=404, detail="Post no encontrado")
 
