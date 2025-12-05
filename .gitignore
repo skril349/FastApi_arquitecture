@@ -1,0 +1,54 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pdb
+*.egg-info/
+.eggs/
+*.sqlite3
+
+# --- Virtual environments ---
+env/
+venv/
+.venv/
+
+# --- Dependencies ---
+pip-wheel-metadata/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# --- IDE / Editor ---
+.vscode/
+.idea/
+*.iml
+
+# --- Testing ---
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# --- Mypy / Ruff / Linters ---
+.mypy_cache/
+.dmypy.json
+ruff_cache/
+
+# --- Byte-compiled / logs ---
+*.log
+*.tmp
+
+# --- Build ---
+build/
+dist/
+
+# --- Uvicorn ---
+*.pid
+
+# --- Environment variables ---
+.env
+.env.*
+
+# --- OS files ---
+.DS_Store
+Thumbs.db
