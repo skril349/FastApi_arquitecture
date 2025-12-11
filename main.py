@@ -88,7 +88,13 @@ def home():
     return {"message": "Bienvenidos a Mini Blog"}
 
 @app.get("/posts", response_model=PaginatedPost)
-def list_posts(query: Optional[str] = Query(
+def list_posts(
+    text: Optional[str] = Query(
+    default=None,
+    description="Parametro obsoleto",
+    deprecated=True
+    ),
+    query: Optional[str] = Query(
     default=None,
     description="Buscar en los títulos de los posts",
     alias="q",
@@ -117,6 +123,8 @@ def list_posts(query: Optional[str] = Query(
     ):
     
     results = BLOG_POST
+    
+    query = query or text  # Prioriza 'query' sobre 'text'
     
     if query:
         # list comprehension to filter posts by title
