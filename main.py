@@ -65,7 +65,15 @@ class PostSummary(BaseModel):
     title: str
     
 class PaginatedPost(BaseModel):
+    page:int
+    per_page:int
     total: int
+    total_pages: int
+    has_prev: bool
+    has_next: bool
+    order_by: str
+    direction: str
+    search: Optional[str]
     limit: int
     offset: int
     items: List[PostPublic]
@@ -115,6 +123,14 @@ def list_posts(query: Optional[str] = Query(
     results = sorted(results, key=lambda post: post[order_by], reverse=(direction=="desc"))
     
     return PaginatedPost(
+        page=(offset // limit) + 1,
+        per_page=limit,
+        total_pages=(total + limit -1) // limit,
+        has_prev=offset > 0,
+        has_next=offset + limit < total,
+        order_by=order_by,
+        direction=direction,
+        search=query,
         total=total,
         limit=limit,
         offset=offset,
