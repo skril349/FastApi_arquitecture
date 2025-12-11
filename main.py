@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Query, Body, HTTPException, Path
 from pydantic import BaseModel, Field, field_validator,EmailStr
-from typing import Optional, List, Union
+from typing import Optional, List, Union, Literal
 app = FastAPI(title = "Mini Blog")
 
 BLOG_POST = [
@@ -76,12 +76,34 @@ def list_posts(query: Optional[str] = Query(
     title="Query de búsqueda",
     example="primer",
     pattern="^[a-zA-Z0-9 ]+$"
-    )):
+    ),
+    limit: int = Query(
+        default=10,
+        ge=1,
+        le=100,
+        description="Número máximo de posts a retornar"),
+    offset: int = Query(
+        default=0,
+        ge=0,
+        description="Número de posts a omitir"),
+    order_by: Literal["title", "id"] = Query(
+        "id",
+        description="Campo por el cual ordenar los posts",
+        example="title"),
+    direction: Literal["asc", "desc"] = Query(
+        "asc",
+        description="Dirección de ordenamiento")
+    ):
+    
+    results = BLOG_POST
     
     if query:
         # list comprehension to filter posts by title
-        return [post for post in BLOG_POST if query.lower() in post["title"].lower()]
-    return BLOG_POST
+        results =  [post for post in BLOG_POST if query.lower() in post["title"].lower()]
+    
+    results = sorted(results, key=lambda post: post[order_by], reverse=(direction=="desc"))
+    
+    return results[offset: offset + limit]
 
 @app.get("/posts/{post_id}", response_model=Union[PostPublic, PostSummary], response_description="Post encontrado")
 def get_post(post_id:int = Path(
