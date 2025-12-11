@@ -253,7 +253,7 @@ def create_post(post:PostCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail="Error al crear el post")
 
 
-@app.put("/posts/{post_id}", response_model=PostPublic)
+@app.put("/posts/{post_id}", response_model=PostPublic, status_code=status.HTTP_202_ACCEPTED)
 def update_post(post_id:int, data:PostUpdate, db: Session = Depends(get_db)):
     
     post_find = select(PostORM).where(PostORM.id == post_id)
@@ -277,10 +277,19 @@ def update_post(post_id:int, data:PostUpdate, db: Session = Depends(get_db)):
     
 
 
-@app.delete("/posts/{post_id}")
-def delete_post(post_id:int):
-    for index, post in enumerate(BLOG_POST):
-        if post["id"] == post_id:
-            BLOG_POST.pop(index)
-            return {"message": "Post eliminado exitosamente"}
-    raise HTTPException(status_code=404, detail="Post no encontrado")
+@app.delete("/posts/{post_id}", status_code=status.HTTP_202_ACCEPTED, response_description="Post eliminado exitosamente")
+def delete_post(post_id:int, db: Session = Depends(get_db)):
+    
+    post_find = select(PostORM).where(PostORM.id == post_id)
+    post = db.execute(post_find).scalar_one_or_none()
+    if not post:
+        raise HTTPException(status_code=404, detail="Post no encontrado")
+    try:
+        db.delete(post)
+        db.commit()
+        return {"message": "Post eliminado exitosamente"}   
+     
+    except SQLAlchemyError:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Error al eliminar el post")
+    
