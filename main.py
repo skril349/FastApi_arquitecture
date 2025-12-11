@@ -1,11 +1,11 @@
 import os
 from datetime import datetime
-from fastapi import FastAPI, Query, Body, HTTPException, Path
+from fastapi import Depends, FastAPI, Query, Body, HTTPException, Path, status
 from pydantic import BaseModel, ConfigDict, Field, field_validator,EmailStr
 from typing import Optional, List, Union, Literal
 from sqlalchemy import create_engine, Integer, String, Text, DateTime
 from sqlalchemy.orm import sessionmaker, Session, DeclarativeBase, Mapped, mapped_column
-
+from sqlalchemy.exc import SQLAlchemyError
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./blog.db")
 print(f"Conectando a la base de datos en: {DATABASE_URL}")
 
@@ -222,14 +222,22 @@ def get_post(post_id:int = Path(
     raise HTTPException(status_code=404, detail="Post no encontrado")
 
 
-@app.post("/posts", response_model=PostPublic, status_code=201)
-def create_post(post:PostCreate):
+@app.post("/posts", response_model=PostPublic, status_code=status.HTTP_201_CREATED, response_description="Post creado exitosamente")
+def create_post(post:PostCreate, db: Session = Depends(get_db)):
     # ... --> obligatori enviar body
+    new_post = PostORM(
+        title=post.title,
+        content=post.content
+    )
+    try:
+        db.add(new_post)
+        db.commit()
+        db.refresh(new_post)
+        return new_post
+    except SQLAlchemyError:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Error al crear el post")
 
-    new_id_post = max(post["id"] for post in BLOG_POST) + 1
-    post_data = {"id": new_id_post, "title": post.title, "content": post.content, "tags": [tag.model_dump() for tag in post.tags], "author": post.author.model_dump() if post.author else None}
-    BLOG_POST.append(post_data)
-    return post_data
 
 @app.put("/posts/{post_id}", response_model=PostPublic)
 def update_post(post_id:int, data:PostUpdate):
