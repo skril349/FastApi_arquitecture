@@ -223,7 +223,9 @@ def get_post(post_id:int = Path(
     include_content: bool = Query(default=True, description="Incluir el contenido del post"),
     db: Session = Depends(get_db)):
     
-    post = db.get(PostORM, post_id)
+    post_find = select(PostORM).where(PostORM.id == post_id)
+    post = db.execute(post_find).scalar_one_or_none()
+    
     if not post:
         raise HTTPException(status_code=404, detail="Post no encontrado")
     
