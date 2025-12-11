@@ -254,14 +254,27 @@ def create_post(post:PostCreate, db: Session = Depends(get_db)):
 
 
 @app.put("/posts/{post_id}", response_model=PostPublic)
-def update_post(post_id:int, data:PostUpdate):
-    for post in BLOG_POST:
-        if post["id"] == post_id:
-            playload = data.model_dump(exclude_unset=True) # excluye los campos no enviados
-            if "title" in playload: post["title"] = playload["title"]
-            if "content" in playload: post["content"] = playload["content"]
-            return post
-    raise HTTPException(status_code=404, detail="Post no encontrado")
+def update_post(post_id:int, data:PostUpdate, db: Session = Depends(get_db)):
+    
+    post_find = select(PostORM).where(PostORM.id == post_id)
+    post = db.execute(post_find).scalar_one_or_none()
+    if not post:
+        raise HTTPException(status_code=404, detail="Post no encontrado")
+    
+    
+    updates = data.model_dump(exclude_unset=True) # excluye los campos no enviados
+    for key, value in updates.items():
+        setattr(post, key, value)
+        
+    try:
+        db.add(post)
+        db.commit()
+        db.refresh(post)
+        return post
+    except SQLAlchemyError:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Error al actualizar el post")
+    
 
 
 @app.delete("/posts/{post_id}")
