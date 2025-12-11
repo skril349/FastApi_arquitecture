@@ -20,7 +20,7 @@ class Author(BaseModel):
 class PostBase(BaseModel):
     title: str
     content: str
-    tags: Optional[List[Tag]] = []
+    tags: Optional[List[Tag]] = Field(default=list) # lista vacía por defecto
     author: Optional[Author] = None
     
     
@@ -40,7 +40,7 @@ class PostCreate(BaseModel):
         min_length=10
         )
     
-    tags: List[Tag] = []
+    tags: List[Tag] = Field(default_factory=list)
     author: Optional[Author] = None
     
     @field_validator("title")
@@ -51,7 +51,7 @@ class PostCreate(BaseModel):
         return value
 
 class PostUpdate(BaseModel):
-    title: str = Field(..., description="Título del post", max_length=100, min_length=1)
+    title: Optional[str] = Field(None, description="Título del post", max_length=100, min_length=1)
     content: Optional[str] = None
     
 class PostPublic(PostBase):
