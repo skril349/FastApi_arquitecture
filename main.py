@@ -3,7 +3,7 @@ from datetime import datetime
 from fastapi import Depends, FastAPI, Query, Body, HTTPException, Path, status
 from pydantic import BaseModel, ConfigDict, Field, field_validator,EmailStr
 from typing import Optional, List, Union, Literal
-from sqlalchemy import create_engine, Integer, String, Text, DateTime
+from sqlalchemy import create_engine, Integer, String, Text, DateTime, func, select
 from sqlalchemy.orm import sessionmaker, Session, DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.exc import SQLAlchemyError
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./blog.db")
@@ -161,21 +161,27 @@ def list_posts(
         example="title"),
     direction: Literal["asc", "desc"] = Query(
         "asc",
-        description="Dirección de ordenamiento")
+        description="Dirección de ordenamiento"),
+    db: Session = Depends(get_db)
     ):
     
-    results = BLOG_POST
+    results = select(PostORM)
     
     query = query or text  # Prioriza 'query' sobre 'text'
     
     if query:
         # list comprehension to filter posts by title
-        results =  [post for post in BLOG_POST if query.lower() in post["title"].lower()]
+        results =  results.where(PostORM.title.ilike(f"%{query}%"))
     
-    total = len(results)
+    total = db.scalar(select(func.count()).select_from(results.subquery()))
     
-    results = sorted(results, key=lambda post: post[order_by], reverse=(direction=="desc"))
+    if order_by == "id":
+        order_column = PostORM.id
+    else:
+        order_column = func.lower(PostORM.title)
     
+    results = results.order_by(order_column.asc() if direction == "asc" else order_column.desc())
+
     return PaginatedPost(
         page=(offset // limit) + 1,
         per_page=limit,
@@ -188,7 +194,7 @@ def list_posts(
         total=total,
         limit=limit,
         offset=offset,
-        items=results[offset: offset + limit]
+        items=db.execute(results.offset(offset).limit(limit)).scalars().all()
     )
     
 
