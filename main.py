@@ -4,7 +4,7 @@ from fastapi import Depends, FastAPI, Query, Body, HTTPException, Path, status
 from pydantic import BaseModel, ConfigDict, Field, field_validator,EmailStr
 from typing import Optional, List, Union, Literal
 from sqlalchemy import create_engine, Integer, String, Text, DateTime, func,Table,Column, select, UniqueConstraint, ForeignKey
-from sqlalchemy.orm import sessionmaker, Session, DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.orm import sessionmaker, Session, DeclarativeBase, Mapped, mapped_column, relationship, selectinload, joinedload
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./blog.db")
 print(f"Conectando a la base de datos en: {DATABASE_URL}")
@@ -249,12 +249,23 @@ def filter_posts_by_tags(
         ...,
         min_length=2,
         max_length=30,
-        description="Lista de tags para filtrar los posts")):
+        description="Lista de tags para filtrar los posts"),
+        db: Session = Depends(get_db)
+    ):
     
-    tags_lower = [tag.lower() for tag in tags]
+    normalized_tags_names = [tag.strip().lower() for tag in tags if tag.strip()]
     
-    results = [post for post in BLOG_POST if any(tag["name"].lower() in tags_lower for tag in post.get("tags", []))]
-    return results
+    if not normalized_tags_names:
+        return []
+    
+    post_list = select(PostORM).options(
+        selectinload(PostORM.tags),
+        joinedload(PostORM.author)).where(PostORM.tags.any(
+            func.lower(TagORM.name).in_(normalized_tags_names)
+        )).order_by(PostORM.id.asc())
+        
+    posts = db.execute(post_list).scalars().all()
+    return posts
 
 
 @app.get("/posts/{post_id}", response_model=Union[PostPublic, PostSummary], response_description="Post encontrado")
