@@ -3,9 +3,9 @@ from datetime import datetime
 from fastapi import Depends, FastAPI, Query, Body, HTTPException, Path, status
 from pydantic import BaseModel, ConfigDict, Field, field_validator,EmailStr
 from typing import Optional, List, Union, Literal
-from sqlalchemy import create_engine, Integer, String, Text, DateTime, func, select
+from sqlalchemy import create_engine, Integer, String, Text, DateTime, func, select, UniqueConstraint
 from sqlalchemy.orm import sessionmaker, Session, DeclarativeBase, Mapped, mapped_column
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./blog.db")
 print(f"Conectando a la base de datos en: {DATABASE_URL}")
 
@@ -23,6 +23,8 @@ class Base(DeclarativeBase):
 
 class PostORM(Base):
     __tablename__ = "posts"
+    __table_args__ = (UniqueConstraint('title', name='unique_post_title'),)
+    
     id : Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     title : Mapped[str] = mapped_column(String(100), index=True, nullable=False)
     content: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
@@ -248,6 +250,9 @@ def create_post(post:PostCreate, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(new_post)
         return new_post
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="El título del post ya existe")
     except SQLAlchemyError:
         db.rollback()
         raise HTTPException(status_code=500, detail="Error al crear el post")
