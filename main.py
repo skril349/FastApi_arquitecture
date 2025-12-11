@@ -9,7 +9,11 @@ BLOG_POST = [
     {"id": 3, "title": "Tercer Post", "content": "Este es el contenido del tercer post."},
     {"id": 4, "title": "Cuarto Post", "content": "Este es el contenido del cuarto post."},
     {"id": 5, "title": "Quinto Post", "content": "Este es el contenido del quinto post."},
-    {"id": 6, "title": "Sexto Post", "content": "Este es el contenido del sexto post."},
+    {"id": 6, "title": "Sexto Post", "content": "Este es el contenido del sexto post.", "tags": [{"name": "Python"}, {"name": "FastAPI"}]},
+    {"id": 7, "title": "Séptimo Post", "content": "Este es el contenido del séptimo post.", "tags": [{"name": "JavaScript"}, {"name": "NodeJS"}]},
+    {"id": 8, "title": "Octavo Post", "content": "Este es el contenido del octavo post.", "tags": [{"name": "Python"}, {"name": "Django"}]},
+    {"id": 9, "title": "Noveno Post", "content": "Este es el contenido del noveno post."},
+    {"id": 10, "title": "Décimo Post", "content": "Este es el contenido del décimo post.", "tags": [{"name": "Go"}, {"name": "Web"}]},
     ]
 
 
@@ -137,6 +141,21 @@ def list_posts(query: Optional[str] = Query(
         items=results[offset: offset + limit]
     )
     
+
+@app.get("/posts/by-tags", response_model=List[PostPublic])
+def filter_posts_by_tags(
+    tags: List[str] = Query(
+        ...,
+        min_length=2,
+        max_length=30,
+        description="Lista de tags para filtrar los posts")):
+    
+    tags_lower = [tag.lower() for tag in tags]
+    
+    results = [post for post in BLOG_POST if any(tag["name"].lower() in tags_lower for tag in post.get("tags", []))]
+    return results
+
+
 @app.get("/posts/{post_id}", response_model=Union[PostPublic, PostSummary], response_description="Post encontrado")
 def get_post(post_id:int = Path(
     ...,
