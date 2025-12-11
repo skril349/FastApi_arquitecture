@@ -6,8 +6,12 @@ from typing import Optional, List, Union, Literal
 from sqlalchemy import create_engine, Integer, String, Text, DateTime, func,Table,Column, select, UniqueConstraint, ForeignKey
 from sqlalchemy.orm import sessionmaker, Session, DeclarativeBase, Mapped, mapped_column, relationship, selectinload, joinedload
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
+from dotenv import load_dotenv
+
+load_dotenv()
+
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./blog.db")
-print(f"Conectando a la base de datos en: {DATABASE_URL}")
+#print(f"Conectando a la base de datos en: {DATABASE_URL}")
 
 engine_kwargs = {}
 
