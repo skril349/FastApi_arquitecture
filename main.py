@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Query, Body, HTTPException
+from fastapi import FastAPI, Query, Body, HTTPException, Path
 from pydantic import BaseModel, Field, field_validator,EmailStr
 from typing import Optional, List, Union
 app = FastAPI(title = "Mini Blog")
@@ -20,7 +20,7 @@ class Author(BaseModel):
 class PostBase(BaseModel):
     title: str
     content: str
-    tags: Optional[List[Tag]] = Field(default=list) # lista vacía por defecto
+    tags: Optional[List[Tag]] = Field(default_factory=list) # lista vacía por defecto
     author: Optional[Author] = None
     
     
@@ -75,7 +75,12 @@ def list_posts(query: str | None = Query(default=None, description="Buscar en lo
     return BLOG_POST
 
 @app.get("/posts/{post_id}", response_model=Union[PostPublic, PostSummary], response_description="Post encontrado")
-def get_post(post_id:int, include_content: bool = Query(default=True, description="Incluir el contenido del post")):
+def get_post(post_id:int = Path(
+    ...,
+    description="ID del post a obtener",
+    ge=1,
+    title="ID del post",
+    example=1), include_content: bool = Query(default=True, description="Incluir el contenido del post")):
     
     for post in BLOG_POST:
         if post["id"] == post_id:
