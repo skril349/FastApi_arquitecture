@@ -1,10 +1,10 @@
 import os
-
+from datetime import datetime
 from fastapi import FastAPI, Query, Body, HTTPException, Path
 from pydantic import BaseModel, Field, field_validator,EmailStr
 from typing import Optional, List, Union, Literal
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session, DeclarativeBase
+from sqlalchemy import create_engine, Integer, String, Text, DateTime
+from sqlalchemy.orm import sessionmaker, Session, DeclarativeBase, Mapped, mapped_column
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./blog.db")
 print(f"Conectando a la base de datos en: {DATABASE_URL}")
@@ -21,12 +21,26 @@ SessionLocal = sessionmaker(
 class Base(DeclarativeBase):
     pass
 
+class PostORM(Base):
+    __tablename__ = "posts"
+    id : Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    title : Mapped[str] = mapped_column(String(100), index=True, nullable=False)
+    content: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=datetime.utcnow)
+
+
+Base.metadata.create_all(bind=engine) # dev --> crea las tablas
+
+
 def get_db():
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
+        
+
 
 
 
@@ -58,8 +72,6 @@ class PostBase(BaseModel):
     content: str
     tags: Optional[List[Tag]] = Field(default_factory=list) # lista vacía por defecto
     author: Optional[Author] = None
-    
-    
     
 class PostCreate(BaseModel):
     title: str = Field(
