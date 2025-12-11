@@ -67,7 +67,16 @@ def home():
     return {"message": "Bienvenidos a Mini Blog"}
 
 @app.get("/posts", response_model=List[PostPublic])
-def list_posts(query: str | None = Query(default=None, description="Buscar en los títulos de los posts")):
+def list_posts(query: Optional[str] = Query(
+    default=None,
+    description="Buscar en los títulos de los posts",
+    alias="q",
+    min_length=3,
+    max_length=100,
+    title="Query de búsqueda",
+    example="primer",
+    pattern="^[a-zA-Z0-9 ]+$"
+    )):
     
     if query:
         # list comprehension to filter posts by title
