@@ -1,7 +1,7 @@
 import os
 from datetime import datetime
 from fastapi import FastAPI, Query, Body, HTTPException, Path
-from pydantic import BaseModel, Field, field_validator,EmailStr
+from pydantic import BaseModel, ConfigDict, Field, field_validator,EmailStr
 from typing import Optional, List, Union, Literal
 from sqlalchemy import create_engine, Integer, String, Text, DateTime
 from sqlalchemy.orm import sessionmaker, Session, DeclarativeBase, Mapped, mapped_column
@@ -104,6 +104,7 @@ class PostUpdate(BaseModel):
     
 class PostPublic(PostBase):
     id: int
+    model_config = ConfigDict(from_attributes=True)
     
 class PostSummary(BaseModel):
     id: int
