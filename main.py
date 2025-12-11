@@ -3,8 +3,8 @@ from datetime import datetime
 from fastapi import Depends, FastAPI, Query, Body, HTTPException, Path, status
 from pydantic import BaseModel, ConfigDict, Field, field_validator,EmailStr
 from typing import Optional, List, Union, Literal
-from sqlalchemy import create_engine, Integer, String, Text, DateTime, func, select, UniqueConstraint
-from sqlalchemy.orm import sessionmaker, Session, DeclarativeBase, Mapped, mapped_column
+from sqlalchemy import create_engine, Integer, String, Text, DateTime, func,Table,Column, select, UniqueConstraint, ForeignKey
+from sqlalchemy.orm import sessionmaker, Session, DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./blog.db")
 print(f"Conectando a la base de datos en: {DATABASE_URL}")
@@ -21,6 +21,13 @@ SessionLocal = sessionmaker(
 class Base(DeclarativeBase):
     pass
 
+post_tags = Table(
+    "post_tags",
+    Base.metadata,
+    Column("post_id", ForeignKey("posts.id", ondelete="CASCADE"), primary_key=True),
+    Column("tag_id", ForeignKey("tags.id", ondelete="CASCADE"), primary_key=True)
+)
+
 class PostORM(Base):
     __tablename__ = "posts"
     __table_args__ = (UniqueConstraint('title', name='unique_post_title'),)
@@ -30,6 +37,38 @@ class PostORM(Base):
     content: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, default=datetime.utcnow)
+    
+    author_id: Mapped[Optional[int]] = mapped_column(ForeignKey("authors.id"), nullable=True)
+    author: Mapped[Optional["AuthorORM"]] = relationship(back_populates="posts")
+    
+    tags: Mapped[List["TagORM"]] = relationship(
+        secondary=post_tags,
+        back_populates="posts",
+        lazy="selectin",
+        passive_deletes=True
+    )
+    
+class AuthorORM(Base):
+    __tablename__ = "authors"
+    id : Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    name : Mapped[str] = mapped_column(String(50), nullable=False)
+    email: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, unique=True, index=True)
+    
+    posts: Mapped[List["PostORM"]] = relationship(back_populates="author")
+    
+class TagORM(Base):
+    __tablename__ = "tags"
+    id : Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    name : Mapped[str] = mapped_column(String(30), nullable=False, unique=True)
+    
+    posts: Mapped[List["PostORM"]] = relationship(
+        secondary=post_tags,
+        back_populates="tags",
+        lazy="selectin",
+        passive_deletes=True
+    )
+    
+    
 
 
 Base.metadata.create_all(bind=engine) # dev --> crea las tablas
@@ -64,16 +103,19 @@ BLOG_POST = [
 
 class Tag(BaseModel):
     name: str = Field(..., min_length=2, max_length=30, description="Nombre de la etiqueta")
+    model_config = ConfigDict(from_attributes=True)
     
 class Author(BaseModel):
     name: str = Field(..., min_length=2, max_length=50, description="Nombre del autor")
     email: Optional[EmailStr] = Field(None, description="Correo electrónico del autor")
+    model_config = ConfigDict(from_attributes=True)
 
 class PostBase(BaseModel):
     title: str
     content: str
     tags: Optional[List[Tag]] = Field(default_factory=list) # lista vacía por defecto
     author: Optional[Author] = None
+    model_config = ConfigDict(from_attributes=True)
     
 class PostCreate(BaseModel):
     title: str = Field(
