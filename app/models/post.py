@@ -1,0 +1,42 @@
+from __future__ import annotations
+
+from datetime import datetime
+from sqlalchemy import Integer, String, Table, Column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from typing import List, Optional, TYPE_CHECKING
+from app.core.db import Base
+from sqlalchemy import Text, DateTime, UniqueConstraint, ForeignKey
+
+if TYPE_CHECKING:
+    from .author import AuthorORM
+    from .tag import TagORM
+    
+
+post_tags = Table(
+    "post_tags",
+    Base.metadata,
+    Column("post_id", ForeignKey("posts.id", ondelete="CASCADE"), primary_key=True),
+    Column("tag_id", ForeignKey("tags.id", ondelete="CASCADE"), primary_key=True)
+)
+
+
+class PostORM(Base):
+    __tablename__ = "posts"
+    __table_args__ = (UniqueConstraint('title', name='unique_post_title'),)
+    
+    id : Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    title : Mapped[str] = mapped_column(String(100), index=True, nullable=False)
+    content: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=datetime.utcnow)
+    
+    author_id: Mapped[Optional[int]] = mapped_column(ForeignKey("authors.id"), nullable=True)
+    author: Mapped[Optional["AuthorORM"]] = relationship(back_populates="posts")
+    
+    tags: Mapped[List["TagORM"]] = relationship(
+        secondary=post_tags,
+        back_populates="posts",
+        lazy="selectin",
+        passive_deletes=True
+    )
+    
