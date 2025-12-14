@@ -5,7 +5,7 @@ from typing import List, Optional, Literal, Union
 from sqlalchemy.orm import Session
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
-
+from app.core.security import oauth2_scheme
 
 router = APIRouter(prefix ="/posts", tags=["posts"])
 
@@ -181,6 +181,10 @@ def delete_post(post_id:int, db: Session = Depends(get_db)):
     except SQLAlchemyError:
         db.rollback()
         raise HTTPException(status_code=500, detail="Error al eliminar el post")
+    
+@router.get("/secure")
+def secure_endpoint(token:str = Depends(oauth2_scheme)):
+    return {"message":"acceso con token", "token recibido":token}
     
 
     
