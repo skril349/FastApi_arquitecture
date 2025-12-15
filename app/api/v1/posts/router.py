@@ -120,7 +120,7 @@ def create_post(post:PostCreate, db: Session = Depends(get_db), user = Depends(g
             title=post.title,
             content=post.content,
             tags=[tag.model_dump() for tag in post.tags],
-            author= post.author.model_dump() if post.author else None
+            author= user
         )
         db.commit()
         db.refresh(post)

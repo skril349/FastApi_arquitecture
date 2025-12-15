@@ -92,7 +92,7 @@ class PostRepository:
         author_obj = None
         if author:
             author_obj = self.ensure_author(
-                name=author.get("name"),
+                name=author.get("username"),
                 email=author.get("email")
             )
         post = PostORM(
