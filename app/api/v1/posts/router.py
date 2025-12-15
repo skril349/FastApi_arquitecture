@@ -5,16 +5,9 @@ from typing import List, Optional, Literal, Union
 from sqlalchemy.orm import Session
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
-from app.core.security import oauth2_scheme
-
+from app.core.security import oauth2_scheme, get_current_user
 router = APIRouter(prefix ="/posts", tags=["posts"])
 
-def get_fake_user():
-    return {"username":"Toni VIves", "role":"Admin"}
-
-@router.get("/me")
-def read_me(user: dict = Depends(get_fake_user)):
-    return {"user": user}
 
 @router.get("", response_model=PaginatedPost)
 def list_posts(
@@ -80,8 +73,6 @@ def list_posts(
         items= items
     )
     
-    
-
 
 @router.get("/by-tags", response_model=List[PostPublic])
 def filter_posts_by_tags(
@@ -96,7 +87,6 @@ def filter_posts_by_tags(
     posts = repository.by_tags(tags)
     return posts
     
-
     
 @router.get("/{post_id}", response_model=Union[PostPublic, PostSummary], response_description="Post encontrado")
 def get_post(post_id:int = Path(
@@ -120,12 +110,8 @@ def get_post(post_id:int = Path(
         return PostSummary.model_validate(post,from_attributes=True)
     
 
-
-
-    
-
 @router.post("", response_model=PostPublic, status_code=status.HTTP_201_CREATED, response_description="Post creado exitosamente")
-def create_post(post:PostCreate, db: Session = Depends(get_db)):
+def create_post(post:PostCreate, db: Session = Depends(get_db), user = Depends(get_current_user)):
     
     repository = PostRepository(db)
         
@@ -149,7 +135,7 @@ def create_post(post:PostCreate, db: Session = Depends(get_db)):
 
 
 @router.put("/{post_id}", response_model=PostPublic, status_code=status.HTTP_202_ACCEPTED)
-def update_post(post_id:int, data:PostUpdate, db: Session = Depends(get_db)):
+def update_post(post_id:int, data:PostUpdate, db: Session = Depends(get_db),user = Depends(get_current_user)):
     
     repository = PostRepository(db)
     post = repository.get(post_id)
@@ -167,9 +153,8 @@ def update_post(post_id:int, data:PostUpdate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail="Error al actualizar el post")
     
 
-
 @router.delete("/{post_id}", status_code=status.HTTP_202_ACCEPTED, response_description="Post eliminado exitosamente")
-def delete_post(post_id:int, db: Session = Depends(get_db)): 
+def delete_post(post_id:int, db: Session = Depends(get_db),user = Depends(get_current_user)): 
     repository = PostRepository(db)
     post = repository.get(post_id)
     if not post:
