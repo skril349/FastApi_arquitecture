@@ -6,8 +6,20 @@ from sqlalchemy.orm import Session
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from app.core.security import oauth2_scheme, get_current_user
+import time
+import asyncio
+
 router = APIRouter(prefix ="/posts", tags=["posts"])
 
+@router.get("/sync")
+def sync_endpoint():
+    time.sleep(8)
+    return {"message":"Funcion sincrona terminó"}
+
+@router.get("/async")
+async def async_endpoint():
+    await asyncio.sleep(8)
+    return {"message":"Funcion asincrona terminó"}
 
 @router.get("", response_model=PaginatedPost)
 def list_posts(
