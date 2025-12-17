@@ -1,6 +1,13 @@
-from fastapi import APIRouter, File, UploadFile
+from fastapi import APIRouter, File, UploadFile, HTTPException, status
+import os
+import shutil
+import uuid
+from pathlib import Path
+
 
 router = APIRouter(prefix="/upload", tags=["uploads"])
+
+MEDIA_DIR = Path("app") / "media"
 
 @router.post("/bytes")
 async def upload_bytes(file: bytes = File(...)):
@@ -14,4 +21,27 @@ async def upload_file(file: UploadFile=File(...)):
     return {
         "filename":file.filename,
         "content_type":file.content_type
+    }
+    
+@router.post("/save")
+async def save_file(file: UploadFile = File(...)):
+    if file.content_type not in ["image/png", "image/jpeg"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="solo se permiten imagenes PNG o JPEG"
+        )
+
+    MEDIA_DIR.mkdir(parents=True, exist_ok=True)
+
+    ext = os.path.splitext(file.filename)[1]
+    filename = f"{uuid.uuid4().hex}{ext}"
+    file_path = MEDIA_DIR / filename
+
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    return {
+        "filename": filename,
+        "content_type": file.content_type,
+        "url": f"/media/{filename}"
     }
