@@ -87,17 +87,19 @@ class PostRepository:
         title:str,
         content:str,
         author:Optional[dict],
-        tags:List[dict]
+        tags:List[dict],
+        image_url: str
     ) -> PostORM:
         author_obj = None
         if author:
             author_obj = self.ensure_author(
-                name=author.get("username"),
-                email=author.get("email")
-            )
+                author['username'], author['email'])
+        
+        
         post = PostORM(
             title=title,
             content=content,
+            image_url=image_url,
             author=author_obj
         )
         for tag in tags:

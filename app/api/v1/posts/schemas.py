@@ -1,7 +1,7 @@
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator,EmailStr
-from typing import Optional, List
-
+from typing import Optional, List, Annotated
+from fastapi import Form
 
 class Tag(BaseModel):
     name: str = Field(..., min_length=2, max_length=30, description="Nombre de la etiqueta")
@@ -17,7 +17,10 @@ class PostBase(BaseModel):
     content: str
     tags: Optional[List[Tag]] = Field(default_factory=list) # lista vacía por defecto
     author: Optional[Author] = None
+    image_url: Optional[str] = None
+    
     model_config = ConfigDict(from_attributes=True)
+    
     
 class PostCreate(BaseModel):
     title: str = Field(
@@ -43,6 +46,16 @@ class PostCreate(BaseModel):
         if "python" in value.lower():
             raise ValueError("El título no puede contener la palabra 'python'")
         return value
+    
+    @classmethod
+    def as_form(
+        cls,
+        title: Annotated[str, Form(min_length = 3)],
+        content: Annotated[str, Form(min_length=10)],
+        tags: Annotated[Optional[List[str]], Form()] = None
+    ):
+        tag_objs = [Tag(name=t) for t in tags or []]
+        return cls(title=title, content=content, tags = tag_objs)
 
 class PostUpdate(BaseModel):
     title: Optional[str] = Field(None, description="Título del post", max_length=100, min_length=1)

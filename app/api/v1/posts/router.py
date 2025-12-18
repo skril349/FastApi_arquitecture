@@ -1,13 +1,14 @@
 from app.core.db import get_db
 from .schemas import PostCreate, PostPublic, PostSummary, PaginatedPost, PostUpdate
 from .repository import PostRepository
-from typing import List, Optional, Literal, Union
+from typing import List, Optional, Literal, Union, Annotated
 from sqlalchemy.orm import Session
-from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, status, UploadFile, File
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from app.core.security import oauth2_scheme, get_current_user
 import time
 import asyncio
+from app.services.file_storage import save_uploaded_file
 
 router = APIRouter(prefix ="/posts", tags=["posts"])
 
@@ -123,27 +124,43 @@ def get_post(post_id:int = Path(
     
 
 @router.post("", response_model=PostPublic, status_code=status.HTTP_201_CREATED, response_description="Post creado exitosamente")
-def create_post(post:PostCreate, db: Session = Depends(get_db), user = Depends(get_current_user)):
-    
+def create_post(
+    post: Annotated[PostCreate, Depends(PostCreate.as_form)],
+    image: Optional[UploadFile] = File(None),
+    db: Session = Depends(get_db),
+    user = Depends(get_current_user),
+):
     repository = PostRepository(db)
-        
+
     try:
-        post = repository.create_post(
+        saved = None
+        if image is not None:
+            saved = save_uploaded_file(image)
+
+        image_url = saved["url"] if saved else None
+        
+
+        post_db = repository.create_post(
             title=post.title,
             content=post.content,
             tags=[tag.model_dump() for tag in post.tags],
-            author= user
+            image_url=image_url,
+            author=user,
         )
         db.commit()
-        db.refresh(post)
-        
-        return post
+        db.refresh(post_db)
+        return post_db
+
     except IntegrityError:
         db.rollback()
         raise HTTPException(status_code=409, detail="El título del post ya existe")
-    except SQLAlchemyError:
+
+    # except SQLAlchemyError:
+    #     db.rollback()
+    #     raise HTTPException(status_code=500, detail="Error al crear el post")
+    except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail="Error al crear el post")
+        raise HTTPException(status_code=500, detail=f"{type(e).__name__}: {e}")
 
 
 @router.put("/{post_id}", response_model=PostPublic, status_code=status.HTTP_202_ACCEPTED)

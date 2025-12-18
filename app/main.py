@@ -7,9 +7,10 @@ from app.api.v1.uploads.router import router as upload_router
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 import os
+
+
 load_dotenv()
 MEDIA_DIR = Path("app") / "media"
-
 
 
 def create_app() -> FastAPI:
