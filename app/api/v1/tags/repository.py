@@ -6,6 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.v1.tags.schemas import TagPublic
+from app.models.post import PostORM, post_tags
 from app.models.tag import TagORM
 from app.services.pagination import paginate_query
 from fastapi import HTTPException, status
@@ -18,7 +19,6 @@ class TagRepository:
         tag_find = select(TagORM).where(TagORM.id == tag_id)
         return self.db.execute(tag_find).scalar_one_or_none()
         
-    
     def list_tags(
         self,
         search:Optional[str] = None,
@@ -50,7 +50,6 @@ class TagRepository:
         result["items"] = [TagPublic.model_validate(item) for item in result["items"]]
         return result
     
-    
     def create_tag(self, tag_name:str):
         normalize = tag_name.strip().lower()
         tag_obj = self.db.execute(
@@ -75,12 +74,33 @@ class TagRepository:
         self.db.flush()
         self.db.refresh(tag)
         return tag
-
-        
-    
+   
     def delete_tag(self, tag_id : int) -> bool:
         tag = self.get(tag_id)
         if not tag:
             return False
         self.db.delete(tag)
         return True
+
+    def most_popular(self) -> dict | None:
+        row = (
+            self.db.execute(
+                select(
+                    TagORM.id.label("id"),
+                    TagORM.name.label("name"),
+                    func.count(PostORM.id).label("uses")
+                )
+                .join(post_tags,post_tags.columns.tag_id == TagORM.id)
+                .join(PostORM,PostORM.id == post_tags.c.post_id)
+                .group_by(TagORM.id, TagORM.name)
+                .order_by(func.count(PostORM.id).desc(),func.lower(TagORM.name).asc())
+                .limit(1)
+            )
+            .mappings()
+            .first()
+        )
+        
+        return dict(row) if row else None
+    
+    
+    
