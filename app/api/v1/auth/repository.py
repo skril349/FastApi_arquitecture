@@ -25,6 +25,7 @@ class UserRepository:
     def set_role(self, user:UserORM, role:str) -> UserORM:
         user.role = role
         self.db.add(user)
+        self.db.flush()
         self.db.refresh(user)
         
         return user

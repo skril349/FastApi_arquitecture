@@ -55,6 +55,8 @@ def set_role(user_id: int = Path(..., ge=1),
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado")
     updated = repository.set_role(user, payload.role)
+    db.commit()
+    db.refresh(updated)
     return UserPublic.model_validate(updated)
 
 @router.post("/token")
