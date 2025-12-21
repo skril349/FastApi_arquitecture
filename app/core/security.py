@@ -58,15 +58,16 @@ def create_access_token(sub:str, minutes: int | None = None) -> str :
 
 def decode_token(token: str) -> dict:
     payload = jwt.decode(jwt = token, key=settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
+    print("payload1 = ", payload)
     return payload
 
 def get_current_user(db:Session = Depends(get_db), token: str = Depends(oauth2_scheme)) -> UserORM:
     
     try:
         payload = decode_token(token)
+        print("payload = ", payload)
         sub: Optional[str] = payload.get("sub")
-        username: Optional[str] = payload.get("username")
-        if not sub or not username:
+        if not sub:
             raise credentials_exc
         user_id = int(sub)
         
@@ -112,7 +113,7 @@ async def oauth2_token(form:OAuth2PasswordRequestForm = Depends(), db: Session =
     if not user or not verify_password(form.password, user.hashed_password):
         raise invalid_credentials()
     token = create_access_token(sub = str(user.id))
-    return {"acces_token": token, "token_type": "bearer"}
+    return {"access_token": token, "token_type": "bearer"}
     
         
     
