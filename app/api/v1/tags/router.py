@@ -6,7 +6,8 @@ from app.api.v1.tags.schemas import TagCreate, TagPublic, TagUpdate
 from app.core.db import get_db
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
-from app.core.security import get_current_user
+from app.core.security import get_current_user, require_admin, require_editor, require_user
+from app.models.user import UserORM
 
 router = APIRouter(prefix="/tags", tags=["tags"])
 
@@ -25,7 +26,7 @@ def list_tags(
 
 
 @router.post("",response_model=TagPublic, response_description="post creado", status_code=status.HTTP_201_CREATED)
-def create_tag(tag:TagCreate, db:Session = Depends(get_db), user = Depends(get_current_user)):
+def create_tag(tag:TagCreate, db:Session = Depends(get_db), _editor: UserORM = Depends(require_editor)):
     repository = TagRepository(db)
     try:
         tag_created = repository.create_tag(tag_name = tag.name)
@@ -37,7 +38,7 @@ def create_tag(tag:TagCreate, db:Session = Depends(get_db), user = Depends(get_c
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="error al crear tag")
     
 @router.put("/{tag_id}",response_model=TagPublic, response_description="actualizar tag", status_code=status.HTTP_202_ACCEPTED)
-def update_tag(tag_id:int, data:TagUpdate, db:Session = Depends(get_db), user = Depends(get_current_user)):
+def update_tag(tag_id:int, data:TagUpdate, db:Session = Depends(get_db),  _editor: UserORM = Depends(require_editor)):
     repository = TagRepository(db)
     tag = repository.get(tag_id)
     
@@ -56,7 +57,7 @@ def update_tag(tag_id:int, data:TagUpdate, db:Session = Depends(get_db), user = 
 
 
 @router.delete("/{tag_id}", status_code=status.HTTP_202_ACCEPTED, response_description="Tag eliminado exitosamente")
-def delete_tag(tag_id:int, db: Session = Depends(get_db),user = Depends(get_current_user)): 
+def delete_tag(tag_id:int, db: Session = Depends(get_db), _admin: UserORM = Depends(require_admin)): 
     repository = TagRepository(db)
     tag = repository.get(tag_id)
     if not tag:
@@ -72,7 +73,7 @@ def delete_tag(tag_id:int, db: Session = Depends(get_db),user = Depends(get_curr
 @router.get("/popular/top")
 def get_most_popular_tag(
     db:Session = Depends(get_db),
-    user = Depends(get_current_user)
+    _user: UserORM = Depends(require_user)
 ):
     repository = TagRepository(db)
     row = repository.most_popular()
