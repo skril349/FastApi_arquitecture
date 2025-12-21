@@ -1,5 +1,5 @@
 import os
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from datetime import datetime, timedelta, timezone
 from typing import Literal, Optional
 from jose import JWTError
@@ -7,6 +7,7 @@ import jwt
 from jwt.exceptions import ExpiredSignatureError, InvalidTokenError, PyJWTError
 from fastapi import Depends, HTTPException, status
 from pwdlib import PasswordHash
+from app.api.v1.auth.repository import UserRepository
 from app.core.config import settings
 from app.core.db import get_db
 from app.models.user import UserORM
@@ -14,7 +15,7 @@ from sqlalchemy.orm import Session
 
 password_hash = PasswordHash.recommended()
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token")
 
 credentials_exc = HTTPException(
     status_code=status.HTTP_401_UNAUTHORIZED,
@@ -103,6 +104,20 @@ def require_role(min_role:Literal["user","editor", "admin"]):
         return user
     
     return evaluation
+
+
+async def oauth2_token(form:OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    repository = UserRepository(db)
+    user = repository.get_by_email(form.username)
+    if not user or not verify_password(form.password, user.hashed_password):
+        raise invalid_credentials()
+    token = create_access_token(sub = str(user.id))
+    return {"acces_token": token, "token_type": "bearer"}
+    
+        
+    
+    
+
 
 require_user = require_role("user")
 require_editor = require_role("editor")
