@@ -1,5 +1,8 @@
+from fastapi import Depends
 from sqlalchemy.orm import Session,selectinload, joinedload
 from typing import List, Optional, Tuple
+from app.api.v1.auth.schemas import UserPublic
+from app.core.security import get_current_user
 from app.models import PostORM, TagORM, UserORM
 from app.core import db
 from sqlalchemy import func, select
@@ -60,11 +63,7 @@ class PostRepository:
         author_obj = self.db.execute(
             select(UserORM).where(UserORM.email == email)
         ).scalar_one_or_none()
-        
-        if author_obj:
-            return author_obj
-        
-        author_obj = UserORM(name=name, email=email)
+
         self.db.add(author_obj)
         self.db.flush()
         return author_obj
@@ -87,21 +86,23 @@ class PostRepository:
         self,
         title:str,
         content:str,
-        author:Optional[dict],
         tags:List[dict],
-        image_url: str
+        image_url: str,
+        category_id: Optional[int],
+        user:UserORM = Depends(get_current_user),
     ) -> PostORM:
         author_obj = None
-        if author:
+        if user:
             author_obj = self.ensure_author(
-                author['username'], author['email'])
+                user.full_name,user.email)
         
         
         post = PostORM(
             title=title,
             content=content,
             image_url=image_url,
-            author=author_obj
+            user=author_obj,
+            category_id=category_id
         )
         for tag in tags:
             names = tag["name"].split(",")

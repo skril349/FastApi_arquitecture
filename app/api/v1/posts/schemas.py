@@ -3,6 +3,9 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator,EmailStr
 from typing import Optional, List, Annotated
 from fastapi import Form
 
+from app.api.v1.auth.schemas import UserPublic
+from app.api.v1.categories.schemas import CategoryPublic
+
 class Tag(BaseModel):
     name: str = Field(..., min_length=2, max_length=30, description="Nombre de la etiqueta")
     model_config = ConfigDict(from_attributes=True)
@@ -16,8 +19,9 @@ class PostBase(BaseModel):
     title: str
     content: str
     tags: Optional[List[Tag]] = Field(default_factory=list) # lista vacía por defecto
-    author: Optional[Author] = None
+    user: Optional[UserPublic] = None
     image_url: Optional[str] = None
+    category: Optional[CategoryPublic] = None
     
     model_config = ConfigDict(from_attributes=True)
     
@@ -37,6 +41,7 @@ class PostCreate(BaseModel):
         min_length=10
         )
     
+    category_id: Optional[int] = None
     tags: List[Tag] = Field(default_factory=list)
     #author: Optional[Author] = None
     
@@ -52,10 +57,11 @@ class PostCreate(BaseModel):
         cls,
         title: Annotated[str, Form(min_length = 3)],
         content: Annotated[str, Form(min_length=10)],
+        category_id: Annotated[int,Form(ge=1)],
         tags: Annotated[Optional[List[str]], Form()] = None
     ):
         tag_objs = [Tag(name=t) for t in tags or []]
-        return cls(title=title, content=content, tags = tag_objs)
+        return cls(title=title, content=content,category_id=category_id, tags = tag_objs)
 
 class PostUpdate(BaseModel):
     title: Optional[str] = Field(None, description="Título del post", max_length=100, min_length=1)
