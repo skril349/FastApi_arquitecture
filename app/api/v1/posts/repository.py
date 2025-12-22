@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session,selectinload, joinedload
 from typing import List, Optional, Tuple
-from app.models import PostORM, AuthorORM, TagORM
+from app.models import PostORM, TagORM, UserORM
 from app.core import db
 from sqlalchemy import func, select
 
@@ -48,23 +48,23 @@ class PostRepository:
         
         post_list = select(PostORM).options(
             selectinload(PostORM.tags),
-            joinedload(PostORM.author)).where(PostORM.tags.any(
+            joinedload(PostORM.user)).where(PostORM.tags.any(
                 func.lower(TagORM.name).in_(normalized_tags_names)
             )).order_by(PostORM.id.asc())
             
         return self.db.execute(post_list).scalars().all()
         
     
-    def ensure_author(self, name:str, email:Optional[str] = None) -> AuthorORM:
+    def ensure_author(self, name:str, email:Optional[str] = None) -> UserORM:
         
         author_obj = self.db.execute(
-            select(AuthorORM).where(AuthorORM.email == email)
+            select(UserORM).where(UserORM.email == email)
         ).scalar_one_or_none()
         
         if author_obj:
             return author_obj
         
-        author_obj = AuthorORM(name=name, email=email)
+        author_obj = UserORM(name=name, email=email)
         self.db.add(author_obj)
         self.db.flush()
         return author_obj

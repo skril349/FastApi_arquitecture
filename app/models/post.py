@@ -7,8 +7,10 @@ from typing import List, Optional, TYPE_CHECKING
 from app.core.db import Base
 from sqlalchemy import Text, DateTime, UniqueConstraint, ForeignKey
 
+from app.models.category import CategoryORM
+
 if TYPE_CHECKING:
-    from .author import AuthorORM
+    from .user import UserORM
     from .tag import TagORM
     
 
@@ -31,8 +33,11 @@ class PostORM(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, default=datetime.utcnow)
     
-    author_id: Mapped[Optional[int]] = mapped_column(ForeignKey("authors.id"), nullable=True)
-    author: Mapped[Optional["AuthorORM"]] = relationship(back_populates="posts")
+    user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
+    user: Mapped[Optional["UserORM"]] = relationship(back_populates="posts")
+    
+    category_id: Mapped[Optional[int]] = mapped_column(ForeignKey("categories.id", ondelete="SET NULL"), nullable=True, index=True)
+    category = relationship("CategoryORM", back_populates="posts")
     
     tags: Mapped[List["TagORM"]] = relationship(
         secondary=post_tags,
