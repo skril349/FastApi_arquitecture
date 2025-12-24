@@ -7,6 +7,8 @@ from app.models import PostORM, TagORM, UserORM
 from app.core import db
 from sqlalchemy import func, select
 
+from app.utils.slugify_utils import ensure_unique_slug, slugify_base
+
 class PostRepository:
     def __init__(self, db:Session):
         self.db = db
@@ -14,6 +16,12 @@ class PostRepository:
     def get(self, post_id:int) -> Optional[PostORM]:
         post_find = select(PostORM).where(PostORM.id == post_id)
         return self.db.execute(post_find).scalar_one_or_none()
+    
+    def get_by_slug(self, slug: str) -> Optional[PostORM]:
+        query = (
+            select(PostORM).where(PostORM.slug == slug)
+        )
+        return self.db.execute(query).scalar_one_or_none()
     
     def search(
         self,
@@ -58,15 +66,19 @@ class PostRepository:
         return self.db.execute(post_list).scalars().all()
         
     
-    def ensure_author(self, name:str, email:Optional[str] = None) -> UserORM:
-        
+    def ensure_author(self, name: str, email: Optional[str] = None) -> UserORM:
+        if not email:
+            raise ValueError("Author email is required")
+
         author_obj = self.db.execute(
             select(UserORM).where(UserORM.email == email)
         ).scalar_one_or_none()
 
-        self.db.add(author_obj)
-        self.db.flush()
+        if not author_obj:
+            raise ValueError(f"User with email {email} not found")
+
         return author_obj
+
     
     def ensure_tag(self, tag_name:str) -> TagORM:
         normalize = tag_name.strip().lower()
@@ -89,16 +101,19 @@ class PostRepository:
         tags:List[dict],
         image_url: str,
         category_id: Optional[int],
-        user:UserORM = Depends(get_current_user),
+        user:UserORM,
     ) -> PostORM:
         author_obj = None
         if user:
             author_obj = self.ensure_author(
                 user.full_name,user.email)
+            
+        unique_slug = ensure_unique_slug(self.db, title)    
         
         
         post = PostORM(
             title=title,
+            slug = unique_slug,
             content=content,
             image_url=image_url,
             user=author_obj,
@@ -116,6 +131,9 @@ class PostRepository:
         self.db.flush()
         self.db.refresh(post)
         return post
+   
+   
+   
     
     def update_post(
         self,

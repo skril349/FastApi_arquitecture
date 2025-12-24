@@ -48,8 +48,8 @@ class PostCreate(BaseModel):
     @field_validator("title")
     @classmethod
     def not_allowed_title(cls,value:str)-> str:
-        if "python" in value.lower():
-            raise ValueError("El título no puede contener la palabra 'python'")
+        if "jingle bell" in value.lower():
+            raise ValueError("El título no puede contener la palabra 'jingle bell'")
         return value
     
     @classmethod
@@ -69,7 +69,9 @@ class PostUpdate(BaseModel):
     
 class PostPublic(PostBase):
     id: int
+    slug: str 
     model_config = ConfigDict(from_attributes=True)
+
     
 class PostSummary(BaseModel):
     id: int

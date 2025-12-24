@@ -6,3 +6,4 @@
 "PyJWT"
 "passlib"
 "pwdlib[argon2]"
+"python-slugify"
