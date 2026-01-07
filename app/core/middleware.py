@@ -1,9 +1,19 @@
 from time import perf_counter
 import uuid
 from fastapi import FastAPI, HTTPException, Request
-
+from fastapi.middleware.cors import CORSMiddleware
 
 def register_middleware(app: FastAPI):
+    
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    
+    
     @app.middleware("http")
     async def add_process_time_header(request: Request, call_next):
         start = perf_counter()
@@ -36,3 +46,5 @@ def register_middleware(app: FastAPI):
         if client_ip in blocked_ips:
             raise HTTPException(status_code=403, detail="Access forbidden from your IP address.")
         return await call_next(request)
+    
+    
