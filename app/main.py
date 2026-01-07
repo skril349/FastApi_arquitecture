@@ -10,6 +10,8 @@ from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 import os
 
+from app.core.middleware import register_middleware
+
 
 load_dotenv()
 MEDIA_DIR = Path("app") / "media"
@@ -18,6 +20,7 @@ MEDIA_DIR = Path("app") / "media"
 def create_app() -> FastAPI:
     app = FastAPI(title="Mini Blog")
     Base.metadata.create_all(bind=engine) # dev --> crea las tablas
+    register_middleware(app)
     app.include_router(auth_router, prefix="/api/v1")
     app.include_router(post_router)
     app.include_router(upload_router)
