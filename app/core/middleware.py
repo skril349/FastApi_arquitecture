@@ -1,5 +1,6 @@
 from time import perf_counter
-from fastapi import FastAPI, Request
+import uuid
+from fastapi import FastAPI, HTTPException, Request
 
 
 def register_middleware(app: FastAPI):
@@ -21,3 +22,17 @@ def register_middleware(app: FastAPI):
         print(f"SALIDA: {method} {url} - {response.status_code}")
         return response
     
+    @app.middleware("http")
+    async def add_request_id_header(request: Request, call_next):
+        request_id = str(uuid.uuid4())
+        response = await call_next(request)
+        response.headers["X-Request-ID"] = request_id
+        return response
+    
+    @app.middleware("http")
+    async def block_ip_middleware(request: Request, call_next):
+        blocked_ips = {"192.168.1.100"}
+        client_ip = request.client.host
+        if client_ip in blocked_ips:
+            raise HTTPException(status_code=403, detail="Access forbidden from your IP address.")
+        return await call_next(request)
